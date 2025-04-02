@@ -1,0 +1,14 @@
+{
+  "targets": {
+    "notes-66dc3": {
+      "hosting": {
+        "danotes": [
+          "notes-66dc3"
+        ]
+      }
+    }
+  },
+  "projects": {
+    "default": "notes-66dc3"
+  }
+}
