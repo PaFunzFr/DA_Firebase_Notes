@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Note } from '../interfaces/note.interface'
-import { Firestore, collection, doc, onSnapshot, collectionData } from '@angular/fire/firestore';
+import { Firestore, collection, doc, onSnapshot, collectionData, addDoc, updateDoc } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 
 
@@ -14,7 +14,7 @@ export class NoteListService {
 
   unsubTrash;
   unsubNotes;
-  item$;
+  item$; 
   items;
 
   firestore: Firestore = inject(Firestore);
@@ -50,6 +50,46 @@ export class NoteListService {
 
   }
 
+  async addNote(item: {}) {
+    try {
+      await addDoc (this.getNotesRef(), item);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async updateNote(note: Note) {
+    if (note.id) { // wenn note.id existiert führe aus
+      
+      try {
+        let docRef = this.getSingleNoteRef(this.getColIdFromNote(note), note.id);
+        await updateDoc((docRef), this.getCleanJson(note));
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }
+
+  // quasi interface von note
+  getCleanJson(note:Note):{} {
+    return {
+      type: note.type,
+      title: note.title,
+      content: note.content,
+      marked: note.marked
+    }
+  }
+
+  // => get collection ID
+  getColIdFromNote(note: Note): "notes" | "trash" {
+    if(note.type == "note") {
+      return "notes"
+    } else {
+      return "trash"
+    }
+  }
+
+  // was macht das? => recherche
   ngDestroy(): void {
     this.unsubTrash;
     this.unsubNotes;
@@ -58,6 +98,8 @@ export class NoteListService {
   normalNotes: Note[] = [];
   trashNotes: Note[] = [];
 
+  // nutzen von collection => doku firebase
+  // liest komplette collection => notes | trash
   getNotesRef() {
     return collection(this.firestore, 'notes');
   }
@@ -65,10 +107,18 @@ export class NoteListService {
     return collection(this.firestore, 'trash');
   }
 
+  // nutzen von doc() => doku firebase
+  // liest ein einzelnes document aus => note | trash
+  // colId = collectionID / docId = documentID
   getSingleTrashRef(colId: string, docId: string) {
     return doc(collection(this.firestore, colId), docId)
   }
 
+  getSingleNoteRef(colId: string, docId: string) {
+    return doc(collection(this.firestore, colId), docId)
+  }
+
+  // setzt die Daten in das Note-Objekt
   setNoteObject(obj: any, id: string): Note {
     return {
       id: id,
@@ -79,6 +129,7 @@ export class NoteListService {
     };
   }
 
+  // liest alle Notes aus der DB und speichert in Array trashNotes
   subTrashList() {
     onSnapshot(this.getTrashRef(), (list) => {  // onSnapshot(Referenz) => =subscribe => holt echtzeit Infos aus getTrashRef
       this.trashNotes = []; // leert Array => refresh
@@ -88,6 +139,7 @@ export class NoteListService {
     });
   }
 
+  // liest alle Notes aus der DB und speichert in Array normalNotes
   subNotesList() {
     onSnapshot(this.getNotesRef(), (list) => {  // onSnapshot(Referenz)
       this.normalNotes = [];
