@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Note } from '../interfaces/note.interface';
 import { NoteListService } from '../firebase-services/note-list.service';
 import { FormsModule } from '@angular/forms';
@@ -13,13 +13,24 @@ import { NoteComponent } from './note/note.component';
   styleUrl: './note-list.component.scss'
 })
 export class NoteListComponent {
-  noteList: Note[] = [];
+
+  noteList = inject(NoteListService);
+
   favFilter: "all" | "fav" = "all";
   status: "notes" | "trash" = "notes";
 
-  constructor(public noteService: NoteListService) { // MUSS im constructor sein, sonst funktioniert es nicht
-    this.noteList = this.getDummyData()
+  constructor() { 
+    
   }
+
+  getList(target: string): Note[] { // target ist der Filter
+    if (target == "notes") {
+      return this.noteList.normalNotes; // holt das array aus dem service
+    } else {
+      return this.noteList.trashNotes; // holt das array aus dem service
+    }
+  }
+
 
   changeFavFilter(filter:"all" | "fav"){
     this.favFilter = filter;
