@@ -60,7 +60,6 @@ export class NoteListService {
 
   async updateNote(note: Note) {
     if (note.id) { // wenn note.id existiert führe aus
-      
       try {
         let docRef = this.getSingleNoteRef(this.getColIdFromNote(note), note.id);
         await updateDoc((docRef), this.getCleanJson(note));
