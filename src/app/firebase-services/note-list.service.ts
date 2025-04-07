@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Note } from '../interfaces/note.interface'
-import { Firestore, collection, doc, onSnapshot, collectionData, addDoc, updateDoc } from '@angular/fire/firestore';
+import { Firestore, collection, doc, onSnapshot, collectionData, addDoc, updateDoc, deleteDoc, query, where, orderBy, limit } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 
 
@@ -12,18 +12,20 @@ interface Item {
 })
 export class NoteListService {
 
-  unsubTrash;
+  unsubTrash; // unsub variable die in ngOnDestroy verwendet wird
   unsubNotes;
-  item$; 
-  items;
+  unsubFavNotes;
+  // item$; 
+  // items;
 
   firestore: Firestore = inject(Firestore);
 
   constructor() {
     this.unsubNotes = this.subNotesList();
     this.unsubTrash = this.subTrashList();
-    this.item$ = collectionData(this.getNotesRef());
-    this.items = this.item$.subscribe();
+    this.unsubFavNotes = this.subFavNotesList();
+    // this.item$ = collectionData(this.getNotesRef());
+    // this.items = this.item$.subscribe();
 
     // referenz auf sammlung
     // vorteil zugriff auf u.a. die ID
@@ -50,9 +52,22 @@ export class NoteListService {
 
   }
 
-  async addNote(item: {}) {
+  async deleteNote(colId: string, docId: string) {
+      try {
+        await deleteDoc(this.getSingleDocRef(colId, docId));
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  
+
+  async addNote(item: Note, type: "note" | "trash") {
     try {
-      await addDoc (this.getNotesRef(), item);
+      if (type === "trash") {
+        await addDoc(this.getTrashRef(), item);
+      } else if (type === "note") {
+        await addDoc(this.getNotesRef(), item);
+      }
     } catch (error) {
       console.error(error);
     }
@@ -88,14 +103,15 @@ export class NoteListService {
     }
   }
 
-  // was macht das? => recherche
-  ngDestroy(): void {
+  //stopp zuhören auf trash und notes
+  ngOnDestroy(): void {
     this.unsubTrash;
     this.unsubNotes;
   }
 
   normalNotes: Note[] = [];
   trashNotes: Note[] = [];
+  favNotes: Note[] = [];
 
   // nutzen von collection => doku firebase
   // liest komplette collection => notes | trash
@@ -117,6 +133,10 @@ export class NoteListService {
     return doc(collection(this.firestore, colId), docId)
   }
 
+  getSingleDocRef(colId: string, docId: string) {
+    return doc(collection(this.firestore, colId), docId)
+  }
+
   // setzt die Daten in das Note-Objekt
   setNoteObject(obj: any, id: string): Note {
     return {
@@ -130,7 +150,7 @@ export class NoteListService {
 
   // liest alle Notes aus der DB und speichert in Array trashNotes
   subTrashList() {
-    onSnapshot(this.getTrashRef(), (list) => {  // onSnapshot(Referenz) => =subscribe => holt echtzeit Infos aus getTrashRef
+    return onSnapshot(this.getTrashRef(), (list) => {  // onSnapshot(Referenz) => =subscribe => holt echtzeit Infos aus getTrashRef
       this.trashNotes = []; // leert Array => refresh
       list.forEach((element) => {
         this.trashNotes.push(this.setNoteObject(element.data(), element.id)); // füllt Array mit Datenbank Infos
@@ -140,10 +160,23 @@ export class NoteListService {
 
   // liest alle Notes aus der DB und speichert in Array normalNotes
   subNotesList() {
-    onSnapshot(this.getNotesRef(), (list) => {  // onSnapshot(Referenz)
+    const q = query(this.getNotesRef());
+    return onSnapshot(q, (list) => {  // onSnapshot(Referenz)
       this.normalNotes = [];
       list.forEach((element) => {
         this.normalNotes.push(this.setNoteObject(element.data(), element.id));
+      });
+    });
+  }
+
+  subFavNotesList() {
+    // FILTER FUNCTION, where, limit, orderBy
+    const q = query(this.getNotesRef(), where("marked", "==", true), limit(4)); // limit zeigt nur die ersten "X" notes =>
+    //orderBy & where arbeiten nicht zusammen! => entweder oder
+    return onSnapshot(q, (list) => {  // onSnapshot(Referenz)
+      this.favNotes = [];
+      list.forEach((element) => {
+        this.favNotes.push(this.setNoteObject(element.data(), element.id));
       });
     });
   }

@@ -39,15 +39,39 @@ export class NoteComponent {
   }
 
   moveToTrash(){
-    this.note.type = 'trash';
+    if(this.note.id && this.note.type != 'trash') {
+      this.note.type = 'trash';
+      let docId = this.note.id; // id wird in docId gespeichert
+      delete this.note.id; // alte id wird gelöscht
+      this.noteService.addNote(this.note, 'trash'); // move to trash // mit alter id
+      this.noteService.deleteNote("notes", docId); // delete note from notes
+    }
+  }
+
+  restoreFromTrash(){
+    if(this.note.id && this.note.type == 'trash') {
+      this.note.type = 'note';
+      let docId = this.note.id; // id wird in docId gespeichert
+      delete this.note.id; // alte id wird gelöscht
+      this.noteService.addNote(this.note, 'note'); // move to trash // mit alter id
+      this.noteService.deleteNote("trash", docId); // delete note from notes
+    }
   }
 
   moveToNotes(){
-    this.note.type = 'note';
+    if(this.note.id && this.note.type == 'trash') {
+      this.note.type = 'note';
+      let docId = this.note.id; // id wird in docId gespeichert
+      delete this.note.id; // alte id wird gelöscht
+      this.noteService.addNote(this.note, 'note'); // move to notes // mit alter id
+      this.noteService.deleteNote("trash", docId); // delete note from trash
+    }
   }
 
   deleteNote(){
-
+    if(this.note.id && this.note.type == 'trash') {
+      this.noteService.deleteNote("trash", this.note.id); // delete note
+    }
   }
 
   saveNote(){

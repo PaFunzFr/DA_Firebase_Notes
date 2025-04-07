@@ -69,9 +69,6 @@
                     </g>
                 </svg>
                 }
-
-
-
                 <p>Favorites</p>
             </button>
         </div>
@@ -125,18 +122,12 @@
                     </g>
                 </svg>
                 }
-
-
-
                 <p>Trash</p>
             </button>
         </div>
     </div>
     <div>
-        @for (note of getList("notes"); track note) {
-            <app-note [note]="note"></app-note>
-        }
-        @for (note of getList("trash"); track note) {
+        @for (note of getList(this.status); track note) {
             <app-note [note]="note"></app-note>
         }
     </div>
